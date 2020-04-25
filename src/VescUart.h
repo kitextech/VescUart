@@ -27,6 +27,7 @@ class VescUart
 		long tachometerAbs;
 		uint8_t fault;
 		float throttle;
+		uint8_t CANid;
 	};
 
 	/** Struct to store the telemetry data returned by the DieBieMS */
@@ -69,6 +70,15 @@ class VescUart
 		int	valueY;
 		bool upperButton; // valUpperButton
 		bool lowerButton; // valLowerButton
+	};
+
+	struct profilePackage {
+		float currentScaleMin;
+		float currentScaleMax;
+		float minSpeed;
+		float maxSpeed;
+		float minWatt;
+		float maxWatt;
 	};
 
 
