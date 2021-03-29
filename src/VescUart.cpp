@@ -31,7 +31,7 @@ int VescUart::receiveUartMessage(uint8_t * payloadReceived) {
 	uint8_t messageReceived[256];
 	uint16_t lenPayload = 0;
 
-	uint32_t timeout = millis() + 100; // Defining the timestamp for timeout (100ms before timeout)
+	uint32_t timeout = millis() + 2; // Defining the timestamp for timeout (100ms before timeout) // maximum use 5 m/s to process 
 
 	while ( millis() < timeout && messageRead == false) {
 
@@ -200,22 +200,24 @@ bool VescUart::processReadPacket(bool deviceType, uint8_t * message) {
 					mask = buffer_get_uint32(message, &ind);
 				}
 
-				if (mask & ((uint32_t)1 << 0)) {data.tempFET 		= buffer_get_float16(message, 10.0, &ind);}
-				if (mask & ((uint32_t)1 << 1)) {data.tempMotor 		= buffer_get_float16(message, 10.0, &ind);}
+				if (mask & ((uint32_t)1 << 0)) {data.tempFET 			= buffer_get_float16(message, 10.0, &ind);}
+				if (mask & ((uint32_t)1 << 1)) {data.tempMotor 			= buffer_get_float16(message, 10.0, &ind);}
 				if (mask & ((uint32_t)1 << 2)) {data.avgMotorCurrent 	= buffer_get_float32(message, 100.0, &ind);}
 				if (mask & ((uint32_t)1 << 3)) {data.avgInputCurrent 	= buffer_get_float32(message, 100.0, &ind);}
-				if (mask & ((uint32_t)1 << 4)) {data.avgIdCurent 	= buffer_get_float32(message, 100.0, &ind);}
-				if (mask & ((uint32_t)1 << 5)) {data.avgIqCurent 	= buffer_get_float32(message, 100.0, &ind);}
+				if (mask & ((uint32_t)1 << 4)) {data.avgIdCurent 		= buffer_get_float32(message, 100.0, &ind);}
+				if (mask & ((uint32_t)1 << 5)) {data.avgIqCurent 		= buffer_get_float32(message, 100.0, &ind);}
 				if (mask & ((uint32_t)1 << 6)) {data.dutyCycleNow 		= buffer_get_float16(message, 1000.0, &ind);}
 				if (mask & ((uint32_t)1 << 7)) {data.rpm 				= buffer_get_int32(message, &ind);}
-				if (mask & ((uint32_t)1 << 8)) {data.inpVoltage = buffer_get_float16(message, 10.0, &ind);}
-				if (mask & ((uint32_t)1 << 9)) {data.ampHours = buffer_get_float32(message, 10000.0, &ind);}
-				if (mask & ((uint32_t)1 << 10)) {data.ampHoursCharged = buffer_get_float32(message, 10000.0, &ind);}
-				if (mask & ((uint32_t)1 << 11)) {data.watt_hours = buffer_get_float32(message, 10000.0, &ind);}
+				if (mask & ((uint32_t)1 << 8)) {data.inpVoltage 		= buffer_get_float16(message, 10.0, &ind);}
+				if (mask & ((uint32_t)1 << 9)) {data.ampHours 			= buffer_get_float32(message, 10000.0, &ind);}
+				if (mask & ((uint32_t)1 << 10)) {data.ampHoursCharged 	= buffer_get_float32(message, 10000.0, &ind);}
+				if (mask & ((uint32_t)1 << 11)) {data.watt_hours 		= buffer_get_float32(message, 10000.0, &ind);}
 				if (mask & ((uint32_t)1 << 12)) {data.watt_hours_charged = buffer_get_float32(message, 10000.0, &ind);}
 				if (mask & ((uint32_t)1 << 13)) {data.tachometer 		= buffer_get_int32(message, &ind);}
-				if (mask & ((uint32_t)1 << 14)) {data.tachometerAbs 		= buffer_get_int32(message, &ind);}
-				if (mask & ((uint32_t)1 << 15)) {data.fault = message[ind]; }
+				if (mask & ((uint32_t)1 << 14)) {data.tachometerAbs 	= buffer_get_int32(message, &ind);}
+				if (mask & ((uint32_t)1 << 15)) {data.fault = message[ind++]; }
+				if (mask & ((uint32_t)1 << 16)) {data.pidPosNow 		= buffer_get_float32(message, 1000000.0, &ind);}
+
 				//Others values are ignored. You can add them here accordingly to commands.c in VESC Firmware. Please add those variables in "struct dataPackage" in VescUart.h file.
 
 				return true;
@@ -342,10 +344,10 @@ bool VescUart::getVescValues(void) {
 bool VescUart::getVescValuesSelective(uint32_t mask) {
 	uint8_t command[5];
 	command[0] = { COMM_GET_VALUES_SELECTIVE };
-	command[1] = { mask >> 24 }; //mask MSB
-	command[2] = { mask >> 16 & 0xFF }; //mask
-	command[3] = { mask >> 8 & 0xFF }; //mask
-	command[4] = { mask & 0xFF }; //mask LSB
+	command[1] = { static_cast<uint8_t>(mask >> 24)}; //mask MSB
+	command[2] = { static_cast<uint8_t>(mask >> 16 & 0xFF) }; //mask
+	command[3] = { static_cast<uint8_t>(mask >> 8 & 0xFF) }; //mask
+	command[4] = { static_cast<uint8_t>(mask & 0xFF) }; //mask LSB
 	uint8_t payload[256];
 
 	packSendPayload(command, 5);
@@ -363,13 +365,41 @@ bool VescUart::getVescValuesSelective(uint32_t mask) {
 	}
 }
 
+bool VescUart::getVescValuesSelectiveAsync(uint32_t mask) {
+	uint8_t command[5];
+	command[0] = { COMM_GET_VALUES_SELECTIVE };
+	command[1] = { static_cast<uint8_t>(mask >> 24)}; //mask MSB
+	command[2] = { static_cast<uint8_t>(mask >> 16 & 0xFF) }; //mask
+	command[3] = { static_cast<uint8_t>(mask >> 8 & 0xFF) }; //mask
+	command[4] = { static_cast<uint8_t>(mask & 0xFF) }; //mask LSB
+
+	packSendPayload(command, 5);
+	// delay(1); //needed, otherwise data is not read
+
+	return true;
+}
+
+bool VescUart::getVescValuesSelectiveAsyncRecieve() {
+	uint8_t payload[256];
+	int lenPayload = receiveUartMessage(payload);
+
+	if (lenPayload > 0 && lenPayload < 55) {
+		bool read = processReadPacket(false, payload); //returns true if sucessful
+		return read;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bool VescUart::getVescValuesSetupSelective(uint32_t mask) {
 	uint8_t command[5];
 	command[0] = { COMM_GET_VALUES_SETUP_SELECTIVE };
-	command[1] = { mask >> 24 }; //mask MSB
-	command[2] = { mask >> 16 & 0xFF }; //mask
-	command[3] = { mask >> 8 & 0xFF }; //mask
-	command[4] = { mask & 0xFF }; //mask LSB
+	command[1] = { static_cast<uint8_t>(mask >> 24)}; //mask MSB
+	command[2] = { static_cast<uint8_t>(mask >> 16 & 0xFF) }; //mask
+	command[3] = { static_cast<uint8_t>(mask >> 8 & 0xFF) }; //mask
+	command[4] = { static_cast<uint8_t>(mask & 0xFF) }; //mask LSB
 	uint8_t payload[256];
 
 	packSendPayload(command, 5);
@@ -604,6 +634,16 @@ void VescUart::setDuty(float duty) {
 
 	payload[index++] = COMM_SET_DUTY;
 	buffer_append_int32(payload, (int32_t)(duty * 100000), &index);
+
+	packSendPayload(payload, 5);
+}
+
+void VescUart::setPos(float position) {
+	int32_t index = 0;
+	uint8_t payload[5];
+
+	payload[index++] = COMM_SET_POS;
+	buffer_append_int32(payload, (int32_t)(position * 1000000.0), &index);
 
 	packSendPayload(payload, 5);
 }

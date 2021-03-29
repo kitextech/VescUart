@@ -27,6 +27,7 @@ class VescUart
 		long tachometerAbs;
 		uint8_t fault;
 		float throttle;
+		float pidPosNow;
 	};
 
 	/** Struct to store the telemetry data returned by the DieBieMS */
@@ -120,6 +121,19 @@ class VescUart
 		bool getVescValuesSelective(uint32_t mask);
 
 		/**
+		 * @brief      Sends a command to VESC to recieve data from VESC. query data later.
+		 * @param			mask : select which values are sent back by the VESC
+		 * @return     True if successfull otherwise false
+		 */
+		bool getVescValuesSelectiveAsync(uint32_t mask);
+
+		/**
+		 * @brief      Recieve the return data
+		 * @return     True if successfull otherwise false
+		 */
+		bool getVescValuesSelectiveAsyncRecieve();
+
+		/**
 		 * @brief      Sends a command to VESC and stores the returned data
 		 * @param			mask : select which values are sent back by the VESC
 		 * @return     True if successfull otherwise false
@@ -154,6 +168,12 @@ class VescUart
 		 * @param      duty  - The desired duty (0.0-1.0)
 		 */
 		void setDuty(float duty);
+
+		/**
+		 * @brief      Set the position of the motor
+		 * @param      position  - The desired position (0.0-1.0)
+		 */
+		void setPos(float position);
 
 		/**
 		 * @brief      Help Function to print struct dataPackage over Serial for Debug
