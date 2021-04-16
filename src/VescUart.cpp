@@ -8,6 +8,8 @@ VescUart::VescUart(void){
 	nunchuck.valueY         = 127;
 	nunchuck.lowerButton  	= false;
 	nunchuck.upperButton  	= false;
+	data.rpm = 0;
+
 }
 
 void VescUart::setSerialPort(HardwareSerial* port)
