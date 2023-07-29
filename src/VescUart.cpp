@@ -27,7 +27,7 @@ int VescUart::receiveUartMessage(uint8_t * payloadReceived) {
 	// Messages <= 255 starts with "2", 2nd byte is length
 	// Messages > 255 starts with "3" 2nd and 3rd byte is length combined with 1st >>8 and then &0xFF
 
-	uint16_t counter = 0;
+	uint8_t counter = 0; // changed by Andreas Okholm, to avoid overflow of messageReceived. used to be uint16_t.
 	uint16_t endMessage = 256;
 	bool messageRead = false;
 	uint8_t messageReceived[256];
